@@ -11,8 +11,8 @@
     The script collects detailed information about each match, including the file path,
     line number, the matched line content, and the specific pattern that was found.
     
-    After processing, each checked file is moved to a subfolder under E:\Transcripts\Checked,
-    named with the current date in YYYYMMDD format (e.g., E:\Transcripts\Checked\20250925).
+    After processing, each checked file is moved to a subfolder under E:\Checked,
+    named with the current date in YYYYMMDD format (e.g., E:\Checked\20250925).
     
     Results are presented in an interactive GridView for easy viewing and filtering,
     saved to a CSV file, and a dialog box is shown if no matches are found.
@@ -52,13 +52,13 @@
 
     This command searches for patterns defined in 'keywords.csv' within all text files
     (txt, log, csv) in 'C:\MyLogs' and its subdirectories using up to 8 parallel threads,
-    moves checked files to E:\Transcripts\Checked\YYYYMMDD, saves results to 'found_items.csv',
+    moves checked files to E:\Checked\YYYYMMDD, saves results to 'found_items.csv',
     and displays them in GridView.
 
 .NOTES
     Requires PowerShell 7+ for parallel processing. The 'Pattern' column in PatternsCsvPath can contain regular expressions.
     For literal word matching, ensure patterns are escaped if they contain special regex characters.
-    Ensure write permissions to E:\Transcripts\Checked for moving files.
+    Ensure write permissions to E:\Checked for moving files.
 #>
 param(
     [Parameter(Mandatory=$true)]
@@ -97,7 +97,7 @@ if (-not (Test-Path $PatternsCsvPath)) {
     Write-Error "Error: The specified patterns CSV path '$PatternsCsvPath' does not exist."
     exit 1
 }
-$baseDestination = "E:\Transcripts\Checked"
+$baseDestination = "E:\Checked"
 if (-not (Test-Path $baseDestination)) {
     Write-Error "Error: The destination folder '$baseDestination' does not exist or is inaccessible."
     exit 1

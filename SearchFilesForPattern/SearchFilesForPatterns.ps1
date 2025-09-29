@@ -1,7 +1,7 @@
 ﻿<#
 .SYNOPSIS
     Searches through a large number of text files for specific words or patterns defined in a CSV file.
-    Displays the results in a GridView and exports them to another CSV file.
+    Displays the results in a GridView, exports them to a CSV file, and moves checked files to a dated subfolder.
 
 .DESCRIPTION
     This script automates the process of scanning multiple text files for user-defined patterns.
@@ -11,8 +11,11 @@
     The script collects detailed information about each match, including the file path,
     line number, the matched line content, and the specific pattern that was found.
     
-    Finally, it presents these results in an interactive GridView for easy viewing and filtering,
-    and saves all findings to a new CSV file for further analysis or record-keeping.
+    After processing, each checked file is moved to a subfolder under E:\Transcripts\Checked,
+    named with the current date in YYYYMMDD format (e.g., E:\Transcripts\Checked\20250925).
+    
+    Results are presented in an interactive GridView for easy viewing and filtering,
+    saved to a CSV file, and a dialog box is shown if no matches are found.
 
 .PARAMETER TextFilesPath
     Specifies the path to the directory containing the text files to search.
@@ -40,24 +43,22 @@
 .PARAMETER CaseSensitive
     If specified, the pattern matching will be case-sensitive. By default, it is case-insensitive.
 
+.PARAMETER ThrottleLimit
+    Specifies the maximum number of parallel threads for file processing. Defaults to 5.
+    Increase for faster processing on multi-core systems, but monitor system resources.
+
 .EXAMPLE
-    .\SearchFilesForPatterns.ps1 -TextFilesPath 'C:\MyLogs' -PatternsCsvPath '.\keywords.csv' -OutputCsvPath '.\found_items.csv' -Recurse
+    .\SearchFilesForPatterns.ps1 -TextFilesPath 'C:\MyLogs' -PatternsCsvPath '.\keywords.csv' -OutputCsvPath '.\found_items.csv' -Recurse -ThrottleLimit 8
 
     This command searches for patterns defined in 'keywords.csv' within all text files
-    (txt, log, csv) in 'C:\MyLogs' and its subdirectories, saving results to 'found_items.csv'
-    and displaying them in GridView.
-
-.EXAMPLE
-    .\SearchFilesForPatterns.ps1 -TextFilesPath '.\Data' -PatternsCsvPath '.\regex_patterns.csv' -OutputCsvPath '.\matches.csv' -CaseSensitive -FileTypes "*.xml"
-
-    This command performs a case-sensitive search for patterns from 'regex_patterns.csv'
-    only in XML files under '.\Data', saving results to 'matches.csv'.
+    (txt, log, csv) in 'C:\MyLogs' and its subdirectories using up to 8 parallel threads,
+    moves checked files to E:\Transcripts\Checked\YYYYMMDD, saves results to 'found_items.csv',
+    and displays them in GridView.
 
 .NOTES
-    The 'Pattern' column in the PatternsCsvPath can contain regular expressions.
-    For literal word matching, ensure your patterns are escaped if they contain
-    special regex characters (e.g., `[regex]::Escape("my.pattern")`).
-    `Select-String` is optimized for performance, especially with large files.
+    Requires PowerShell 7+ for parallel processing. The 'Pattern' column in PatternsCsvPath can contain regular expressions.
+    For literal word matching, ensure patterns are escaped if they contain special regex characters.
+    Ensure write permissions to E:\Transcripts\Checked for moving files.
 #>
 param(
     [Parameter(Mandatory=$true)]
@@ -73,8 +74,16 @@ param(
 
     [switch]$Recurse,
 
-    [switch]$CaseSensitive
+    [switch]$CaseSensitive,
+
+    [int]$ThrottleLimit = 5
 )
+
+# Check PowerShell version
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Error "This script requires PowerShell 7 or later for parallel processing. Current version: $($PSVersionTable.PSVersion)."
+    exit 1
+}
 
 # --- Script Start ---
 Write-Host "Starting file search for patterns..." -ForegroundColor Cyan
@@ -86,6 +95,11 @@ if (-not (Test-Path $TextFilesPath)) {
 }
 if (-not (Test-Path $PatternsCsvPath)) {
     Write-Error "Error: The specified patterns CSV path '$PatternsCsvPath' does not exist."
+    exit 1
+}
+$baseDestination = "E:\Transcripts\Checked"
+if (-not (Test-Path $baseDestination)) {
+    Write-Error "Error: The destination folder '$baseDestination' does not exist or is inaccessible."
     exit 1
 }
 
@@ -122,7 +136,6 @@ try {
         exit 1
     }
     Write-Host "Successfully loaded $($patterns.Count) patterns." -ForegroundColor Green
-    # $patterns | ForEach-Object { Write-Host "  - $_" } # Uncomment to see loaded patterns
 }
 catch {
     Write-Error "Error reading patterns from CSV '$PatternsCsvPath': $($_.Exception.Message)"
@@ -133,7 +146,6 @@ catch {
 $selectStringParams = @{
     Pattern = $patterns
 }
-
 if ($CaseSensitive) {
     $selectStringParams.Add('CaseSensitive', $true)
 }
@@ -143,9 +155,10 @@ if ($Recurse) { Write-Host "(Including subdirectories)" -ForegroundColor DarkGre
 if ($CaseSensitive) { Write-Host "(Case-sensitive search)" -ForegroundColor DarkGreen }
 else { Write-Host "(Case-insensitive search)" -ForegroundColor DarkGreen }
 Write-Host "Searching file types: $($FileTypes -join ', ')" -ForegroundColor DarkGreen
+Write-Host "Using up to $ThrottleLimit parallel threads for processing." -ForegroundColor DarkGreen
 
 # 4. Perform the search using Select-String
-$searchResults = @()
+$searchResults = New-Object System.Collections.ArrayList
 try {
     # Get all files matching the criteria
     $filesToSearchParams = @{
@@ -166,41 +179,67 @@ try {
     } else {
         Write-Host "Found $($filesToSearch.Count) files to search." -ForegroundColor DarkGreen
         
-        $currentFileIndex = 0
-        $totalFiles = $filesToSearch.Count
-        $totalMatches = 0
-        
-        $filesToSearch | ForEach-Object {
-    $currentFileIndex++
-    $file = $_  # Explicitly assign the current file object to a variable
-    $filePath = $file.FullName
-    
-    Write-Progress -Activity "Searching files for patterns" `
-                   -Status "Processing file $currentFileIndex of $totalFiles':' $($file.Name)" `
-                   -PercentComplete (($currentFileIndex / $totalFiles) * 100)
-    
-    try {
-        # Select-String is efficient for searching multiple patterns in a file
-        $matches = Select-String -LiteralPath $filePath @selectStringParams -ErrorAction SilentlyContinue
-        if ($matches) {
-            $totalMatches += $matches.Count
-            $matches | ForEach-Object {
-                $searchResults += [PSCustomObject]@{
-                    FilePath    = $_.Path
-                    FileName    = $_.Filename
-                    LineNumber  = $_.LineNumber
-                    LineContent = $_.Line
-                    PatternFound= $_.Pattern
+        # Parallel processing: Each file is processed concurrently, returning match objects
+        $searchResults = $filesToSearch | ForEach-Object -Parallel {
+            # Define MoveCheckedLogFile function inside the parallel block
+            function MoveCheckedLogFile {
+                param (
+                    [Parameter(Mandatory=$true)]
+                    [string]$FilePath,
+                    [Parameter(Mandatory=$true)]
+                    [string]$BaseDestination
+                )
+                
+                try {
+                    # Get current date in YYYYMMDD format
+                    $dateFolder = [datetime]::Today.ToString('yyyyMMdd')
+                    $destinationFolder = Join-Path -Path $BaseDestination -ChildPath $dateFolder
+                    
+                    # Create the destination folder if it doesn't exist
+                    New-Item -Path $destinationFolder -ItemType Directory -Force | Out-Null
+                    
+                    # Move the file to the destination folder
+                    Move-Item -Path $FilePath -Destination $destinationFolder -Force -ErrorAction Stop
+                    Write-Host "Moved '$FilePath' to '$destinationFolder'." -ForegroundColor DarkGreen
+                }
+                catch {
+                    Write-Host "Warning: Could not move file '$FilePath': $($_.Exception.Message)" -ForegroundColor Yellow
                 }
             }
-        }
-    }
-    catch {
-        Write-Warning "Could not process file '$filePath': $($_.Exception.Message)"
-    }
-}
-        Write-Progress -Activity "Searching files for patterns" -Status "Search complete." -PercentComplete 100 -Completed
-        Write-Host "Search finished. Found $totalMatches matches across $($searchResults.Count) unique findings." -ForegroundColor Green
+
+            $file = $_
+            $filePath = $file.FullName
+            $selectStringParams = $using:selectStringParams  # Import parameters to parallel context
+            $baseDestination = $using:baseDestination  # Import destination path
+            
+            $fileMatches = New-Object System.Collections.ArrayList
+            try {
+                $matches = Select-String -LiteralPath $filePath @selectStringParams -ErrorAction SilentlyContinue
+                if ($matches) {
+                    $matches | ForEach-Object {
+                        $null = $fileMatches.Add([PSCustomObject]@{
+                            FilePath    = $_.Path
+                            FileName    = $_.Filename
+                            LineNumber  = $_.LineNumber
+                            LineContent = $_.Line
+                            PatternFound= $_.Pattern
+                        })
+                    }
+                }
+                # Move the file after processing
+                MoveCheckedLogFile -FilePath $filePath -BaseDestination $baseDestination
+            }
+            catch {
+                Write-Host "Warning: Could not process file '$filePath': $($_.Exception.Message)" -ForegroundColor Yellow
+            }
+            return $fileMatches
+        } -ThrottleLimit $ThrottleLimit
+        
+        # Flatten the array of arrays into a single collection
+        $searchResults = $searchResults | Where-Object { $_ -ne $null } | ForEach-Object { $_ }
+        
+        $totalMatches = $searchResults.Count
+        Write-Host "Search finished. Found $totalMatches matches across $totalMatches unique findings." -ForegroundColor Green
     }
 }
 catch {
@@ -208,12 +247,14 @@ catch {
     exit 1
 }
 
-# 5. Display results in GridView
+# 5. Display results in GridView or show dialog if no matches
+Add-Type -AssemblyName System.Windows.Forms
 if ($searchResults.Count -gt 0) {
     Write-Host "Displaying results in GridView (close the window to continue script execution)..." -ForegroundColor Cyan
     $searchResults | Out-GridView -Title "Search Results for Patterns"
 } else {
     Write-Host "No matches found." -ForegroundColor Yellow
+    [System.Windows.Forms.MessageBox]::Show("All good", "Search Results", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
 }
 
 # 6. Export results to CSV file

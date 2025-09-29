@@ -1,0 +1,7 @@
+Pattern,Description
+error,Common error message
+warning,Warning notification
+^FAIL$,Exact match for FAIL at start/end of line
+"([0-9]{1,3}\.){3}[0-9]{1,3}",IP Address pattern
+Password:,Looks for password occurrences
+zabbix_agent,Look for Zabbix agent activity

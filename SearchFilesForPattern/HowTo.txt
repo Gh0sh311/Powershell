@@ -1,0 +1,5 @@
+# Example 1: Basic search in a directory, recursively, output to CSV and GridView
+.\SearchFilesForPatterns.ps1 -TextFilesPath 'C:\MyLogs' -PatternsCsvPath '.\patterns.csv' -OutputCsvPath '.\searchResults.csv' -Recurse
+
+# Example 2: Case-sensitive search in current directory, only for specific file types
+.\SearchFilesForPatterns.ps1 -TextFilesPath '.\' -PatternsCsvPath '.\patterns.csv' -OutputCsvPath '.\caseSensitiveResults.csv' -CaseSensitive -FileTypes "*.txt", "*.xml"

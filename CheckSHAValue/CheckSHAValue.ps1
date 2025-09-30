@@ -8,7 +8,7 @@
     the file and input the expected hash.
         
 .NOTES
-    Feel free to modifythis script.
+    Feel free to modify/use this script.
     Trond Hoiberg 25th September 2025
 #>
 

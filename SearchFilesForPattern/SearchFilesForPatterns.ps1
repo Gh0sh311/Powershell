@@ -42,8 +42,9 @@
 .PARAMETER PatternsCsvPath
     Specifies the mandatory path to the CSV file containing the patterns to search for.
     This CSV file must have a column named 'Pattern' (case-insensitive) that contains
-    the regular expressions or literal words to search for. If no 'Pattern' column is found,
-    it will attempt to use the values from the first column.
+    the literal strings to search for. If no 'Pattern' column is found, it will attempt to
+    use the values from the first column. Patterns are treated as literal strings, not regular
+    expressions, to avoid parsing errors with special characters.
     Example: '.\patterns.csv'
 
 .PARAMETER CheckedFilesPath
@@ -74,7 +75,7 @@
 .EXAMPLE
     .\SearchFilesForPatterns.ps1 -TextFilesPath 'C:\MyLogs' -PatternsCsvPath '.\keywords.csv' -CheckedFilesPath 'D:\ProcessedFiles' -Recurse -ThrottleLimit 8
 
-    This command searches for patterns defined in 'keywords.csv' within all text files
+    This command searches for literal strings defined in 'keywords.csv' within all text files
     (txt, log, csv) in 'C:\MyLogs' and its subdirectories using up to 8 parallel threads,
     moves checked files to 'D:\ProcessedFiles\YYYYMMDD', saves results to
     'D:\ProcessedFiles\LogYYYYMMDD\SearchResults.csv', removes empty folders in 'C:\MyLogs',
@@ -84,15 +85,16 @@
     to troubleshoot zipping issues.
 
 .NOTES
-    Requires PowerShell 7+ for parallel processing. The 'Pattern' column in PatternsCsvPath can contain regular expressions.
-    For literal word matching, ensure patterns are escaped if they contain special regex characters.
-    Ensure write permissions to the specified CheckedFilesPath for moving files, creating log subfolders,
-    and zipping files, and to TextFilesPath for removing empty folders. All parameters (TextFilesPath,
-    PatternsCsvPath, CheckedFilesPath) must be provided in the command line. Files in destination
-    subfolders dated earlier than today are deleted only after being successfully added to the
-    corresponding ZIP archive. Search results for files in older subfolders are appended to the
-    corresponding LogYYYYMMDD\SearchResults.csv file. Debug logging (magenta-colored output) is
-    included to help diagnose issues with zipping files.
+    Requires PowerShell 7+ for parallel processing. Patterns in the PatternsCsvPath file are treated
+    as literal strings, not regular expressions, to avoid parsing errors with special characters.
+    Ensure patterns are valid strings and do not contain unescaped regex characters if regex
+    functionality is needed in the future. Ensure write permissions to the specified CheckedFilesPath
+    for moving files, creating log subfolders, and zipping files, and to TextFilesPath for removing
+    empty folders. All parameters (TextFilesPath, PatternsCsvPath, CheckedFilesPath) must be provided
+    in the command line. Files in destination subfolders dated earlier than today are deleted only
+    after being successfully added to the corresponding ZIP archive. Search results for files in older
+    subfolders are appended to the corresponding LogYYYYMMDD\SearchResults.csv file. Debug logging
+    (magenta-colored output) is included to help diagnose issues with zipping files.
 #>
 param(
     [Parameter(Mandatory=$true)]
@@ -333,6 +335,7 @@ catch {
 # 3. Prepare parameters for Select-String
 $selectStringParams = @{
     Pattern = $patterns
+    SimpleMatch = $true  # Treat patterns as literal strings
 }
 if ($CaseSensitive) {
     $selectStringParams.Add('CaseSensitive', $true)

@@ -10,6 +10,7 @@ extract unique values from the list and ignore empty rows and rows starting with
 Keep in mind, one value per row.
 
 The output is a list that will include extensions that might have been removed from Chrome store. 
+I will use this list to blacklist extensions, using a policy, from being installed to any company device
 
 Feel free to use/modify script
 

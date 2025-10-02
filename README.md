@@ -29,5 +29,5 @@ Contributions are welcome! If you have suggestions for improvements or new scrip
 2. Create a new branch for your changes.
 3. Submit a pull request with a detailed description of your updates.
 
-## License
-This project is licensed under the MIT License. See the [License](./License.md)
+## Note
+Feel free to modify and use the scripts. 

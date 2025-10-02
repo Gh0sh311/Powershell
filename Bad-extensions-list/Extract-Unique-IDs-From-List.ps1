@@ -31,6 +31,13 @@
 .EXAMPLE
     .\Extract-UniqueValues.ps1 -InputFile "list.txt" -OutFile "unique.txt" -CommentChar "//" -Encoding "ASCII" -LogFile "script.log"
     Reads list.txt, ignores lines starting with '//', saves unique values to unique.txt in ASCII encoding, logs operations to script.log, and displays results in a GridView.
+
+    This work is based on https://github.com/palant/malicious-extensions-list/blob/main/list.txt
+    Credit to https://github.com/palant
+    Created by Trond Hoiberg
+    Feel free to modify, use and share.
+    This script is provided as-is without any warranty.
+    
 #>
 
 param (

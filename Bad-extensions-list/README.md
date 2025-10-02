@@ -85,4 +85,7 @@ When a `-LogFile` is specified, the script logs:
 
 ## License
 This script is provided as-is, with no warranty. You may modify and distribute it freely, provided you retain the original author’s comments and documentation.
+The list.txt is based on https://github.com/palant/malicious-extensions-list/blob/main/list.txt
+Credit to https://github.com/palant
+I have added to it using findings from various security companies.
 Trond Hoiberg 2 october 2025

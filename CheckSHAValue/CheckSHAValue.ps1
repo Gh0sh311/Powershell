@@ -9,8 +9,7 @@
 # .NOTES
 #     Modified from original by Trond Hoiberg (25th September 2025) to add input validation,
 #     hash algorithm selection, drag-and-drop, progress bar, and clipboard support.
-#     Updated on 2nd October 2025 to fix assembly loading error, typo in hash string conversion,
-#     and rename $comboBoxAlgorithm to $cmbAlgorithm.
+#     Updated on 2nd October 2025 to fix assembly loading error, typo in hash string conversion.
 
 # Import required assembly for GUI
 Add-Type -AssemblyName System.Windows.Forms

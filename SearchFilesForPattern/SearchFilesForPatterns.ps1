@@ -14,10 +14,10 @@
     line number, the matched line content, and the specific pattern that was found.
     
     After processing, each checked file is moved to a subfolder under the specified destination
-    folder (CheckedFilesPath), named with the current date in YYYYMMDD format (e.g., CheckedFilesPath\20250925).
+    folder (CheckedFilesPath), named with the current date in YYYYMMDD format (e.g., CheckedFilesPath\20251001).
     
     Search results are saved to a CSV file located in CheckedFilesPath\LogYYYYMMDD\SearchResults.csv,
-    where YYYYMMDD is the current date (e.g., CheckedFilesPath\Log20250925\SearchResults.csv).
+    where YYYYMMDD is the current date (e.g., CheckedFilesPath\Log20251001\SearchResults.csv).
     
     If new files are added to subfolders in CheckedFilesPath dated earlier than today, their search results
     are appended to the corresponding CheckedFilesPath\LogYYYYMMDD\SearchResults.csv file.
@@ -27,7 +27,7 @@
     
     Additionally, the script checks subfolders in CheckedFilesPath with names in YYYYMMDD format.
     If a subfolder's date is earlier than today, its files are zipped into an archive named after the folder
-    (e.g., 20250924.zip). If a ZIP file already exists for the folder, new files are added to it.
+    (e.g., 20250930.zip). If a ZIP file already exists for the folder, new files are added to it.
     Files are deleted only after being successfully added to the ZIP archive.
     
     All parameters (TextFilesPath, PatternsCsvPath, CheckedFilesPath) must be provided in the command line.
@@ -94,7 +94,8 @@
     in the command line. Files in destination subfolders dated earlier than today are deleted only
     after being successfully added to the corresponding ZIP archive. Search results for files in older
     subfolders are appended to the corresponding LogYYYYMMDD\SearchResults.csv file. Debug logging
-    (magenta-colored output) is included to help diagnose issues with zipping files.
+    (magenta-colored output) is included to help diagnose issues with zipping files, including the
+    parameters used for Compress-Archive.
 #>
 param(
     [Parameter(Mandatory=$true)]
@@ -222,8 +223,14 @@ function Zip-OldFolders {
                                     Write-Host "DEBUG: Creating parent directory '$zipParent'" -ForegroundColor Magenta
                                     New-Item -Path $zipParent -ItemType Directory -Force | Out-Null
                                 }
-                                # Use -Update for existing ZIPs, otherwise create new
-                                $files | Compress-Archive -DestinationPath $zipPath -Force:(-not $zipExists) -Update:$zipExists -ErrorAction Stop
+                                # Use -Force for new ZIPs, -Update for existing ZIPs
+                                if ($zipExists) {
+                                    Write-Host "DEBUG: Using -Update for existing ZIP" -ForegroundColor Magenta
+                                    $files | Compress-Archive -DestinationPath $zipPath -Update -ErrorAction Stop
+                                } else {
+                                    Write-Host "DEBUG: Using -Force for new ZIP" -ForegroundColor Magenta
+                                    $files | Compress-Archive -DestinationPath $zipPath -Force -ErrorAction Stop
+                                }
                                 Write-Host "Successfully updated/created '$zipPath'." -ForegroundColor DarkGreen
                                 # Append search results for these files to the corresponding CSV
                                 $folderResults = $SearchResults | Where-Object { $_.FilePath -like "$($folder.FullName)\*" }

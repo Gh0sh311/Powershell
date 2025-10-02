@@ -30,4 +30,7 @@ Contributions are welcome! If you have suggestions for improvements or new scrip
 3. Submit a pull request with a detailed description of your updates.
 
 ## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [License](./LICENSE)
+ file for details.
+
+[def]: LICENSE

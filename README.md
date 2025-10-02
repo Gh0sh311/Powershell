@@ -31,6 +31,3 @@ Contributions are welcome! If you have suggestions for improvements or new scrip
 
 ## License
 This project is licensed under the MIT License. See the [License](./LICENSE)
- file for details.
-
-[def]: LICENSE

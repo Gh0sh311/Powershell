@@ -60,11 +60,14 @@ function Get-DomainCredential {
             foreach ($dc in $domainControllers) {
                 try {
                     Write-Host "Testing connection to $dc..."
-                    # Test connectivity with credentials
-                    $null = Get-WinEvent -ComputerName $dc -Credential $cred -LogName Security -MaxEvents 1 -ErrorAction Stop
-                    Write-Host "Successfully connected to $dc" -ForegroundColor Green
-                    $validated = $true
-                    break
+
+                    # First test WinRM connectivity
+                    $testWinRM = Test-WSMan -ComputerName $dc -Credential $cred -ErrorAction Stop
+                    if ($testWinRM) {
+                        Write-Host "Successfully connected to $dc" -ForegroundColor Green
+                        $validated = $true
+                        break
+                    }
                 }
                 catch {
                     $lastError = $_.Exception.Message

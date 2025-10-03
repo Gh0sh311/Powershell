@@ -93,7 +93,7 @@ function Start-SecurityEventMonitoring {
 
     # Add script block
     [void]$ps.AddScript({
-        param($Computer, $Cred, $EventIDs)
+        param($Computer, $Username, $Password, $EventIDs)
 
         $result = @{
             Success = $false
@@ -103,6 +103,10 @@ function Start-SecurityEventMonitoring {
         }
 
         try {
+            # Reconstruct credential from username and secure string
+            $securePassword = ConvertTo-SecureString -String $Password -AsPlainText -Force
+            $Cred = New-Object System.Management.Automation.PSCredential($Username, $securePassword)
+
             # Test connection first
             $testConnection = Test-WSMan -ComputerName $Computer -Credential $Cred -ErrorAction SilentlyContinue
             if (-not $testConnection) {
@@ -142,9 +146,10 @@ function Start-SecurityEventMonitoring {
         $EventIDs = $script:DefaultEventIDs
     }
 
-    # Add parameters
+    # Add parameters - convert credential to username and plain text password for serialization
     [void]$ps.AddParameter('Computer', $ComputerName)
-    [void]$ps.AddParameter('Cred', $script:Credential)
+    [void]$ps.AddParameter('Username', $script:Credential.UserName)
+    [void]$ps.AddParameter('Password', $script:Credential.GetNetworkCredential().Password)
     [void]$ps.AddParameter('EventIDs', $EventIDs)
 
     # Start async execution

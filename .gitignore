@@ -1,3 +1,5 @@
 extensions.json
 copilot-instructions.md
 .vscode/
+setting.local.json
+.claude/

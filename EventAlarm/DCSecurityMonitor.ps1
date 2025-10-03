@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -Version 7.0
 
 <#
 .SYNOPSIS
@@ -6,7 +6,13 @@
 .DESCRIPTION
     Monitors all domain controllers in the current domain for specific security events.
     Requires elevated privileges and domain credentials.
+    Requires PowerShell 7.x on Windows with Desktop Experience.
 #>
+
+# Check if running on Windows
+if (-not $IsWindows -and $null -ne $IsWindows) {
+    throw "This script requires Windows operating system"
+}
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -147,10 +153,15 @@ function Start-SecurityEventMonitoring {
     }
 
     # Add parameters - convert credential to username and plain text password for serialization
-    [void]$ps.AddParameter('Computer', $ComputerName)
-    [void]$ps.AddParameter('Username', $script:Credential.UserName)
-    [void]$ps.AddParameter('Password', $script:Credential.GetNetworkCredential().Password)
-    [void]$ps.AddParameter('EventIDs', $EventIDs)
+    if ($script:Credential -is [System.Management.Automation.PSCredential]) {
+        [void]$ps.AddParameter('Computer', $ComputerName)
+        [void]$ps.AddParameter('Username', $script:Credential.UserName)
+        [void]$ps.AddParameter('Password', $script:Credential.GetNetworkCredential().Password)
+        [void]$ps.AddParameter('EventIDs', $EventIDs)
+    }
+    else {
+        throw "Invalid credential object type: $($script:Credential.GetType().FullName)"
+    }
 
     # Start async execution
     $handle = $ps.BeginInvoke()

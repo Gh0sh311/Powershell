@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 5.1
 
 <#
 .SYNOPSIS
@@ -6,15 +6,10 @@
 .DESCRIPTION
     Monitors all domain controllers in the current domain for specific security events.
     Requires elevated privileges and domain credentials.
-    Requires PowerShell 7.x on Windows with Desktop Experience.
+    Requires Windows PowerShell 5.1 (not PowerShell Core/7.x due to WinRM authentication limitations).
     Created by Trond Hoiberg
     Feel free to use and modify this script as needed.
 #>
-
-# Check if running on Windows
-if (-not $IsWindows -and $null -ne $IsWindows) {
-    throw "This script requires Windows operating system"
-}
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing

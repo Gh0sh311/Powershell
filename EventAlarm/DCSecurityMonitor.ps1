@@ -51,12 +51,35 @@ function Get-DomainCredential {
         if ($cred) {
             # Validate credentials by attempting to get domain info
             $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
-            $testDC = $domain.DomainControllers | Select-Object -First 1
+            $domainControllers = $domain.DomainControllers | Select-Object -ExpandProperty Name
 
-            # Test connectivity with credentials
-            $null = Get-WinEvent -ComputerName $testDC.Name -Credential $cred -LogName Security -MaxEvents 1 -ErrorAction Stop
+            # Try each DC until one responds
+            $validated = $false
+            $lastError = $null
 
-            return $cred
+            foreach ($dc in $domainControllers) {
+                try {
+                    Write-Host "Testing connection to $dc..."
+                    # Test connectivity with credentials
+                    $null = Get-WinEvent -ComputerName $dc -Credential $cred -LogName Security -MaxEvents 1 -ErrorAction Stop
+                    Write-Host "Successfully connected to $dc" -ForegroundColor Green
+                    $validated = $true
+                    break
+                }
+                catch {
+                    $lastError = $_.Exception.Message
+                    Write-Host "Failed to connect to $dc : $lastError" -ForegroundColor Yellow
+                    continue
+                }
+            }
+
+            if ($validated) {
+                return $cred
+            }
+            else {
+                [System.Windows.Forms.MessageBox]::Show("Could not validate credentials on any domain controller. Last error: $lastError", "Authentication Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+                return $null
+            }
         }
         return $null
     }

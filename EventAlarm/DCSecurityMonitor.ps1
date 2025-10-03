@@ -56,13 +56,11 @@ function Get-DomainCredential {
                 try {
                     Write-Host "Testing connection to $dc..."
 
-                    # First test WinRM connectivity
-                    $testWinRM = Test-WSMan -ComputerName $dc -Credential $cred -ErrorAction Stop
-                    if ($testWinRM) {
-                        Write-Host "Successfully connected to $dc" -ForegroundColor Green
-                        $validated = $true
-                        break
-                    }
+                    # Test connectivity with credentials by querying a single event
+                    $null = Get-WinEvent -ComputerName $dc -Credential $cred -LogName System -MaxEvents 1 -ErrorAction Stop
+                    Write-Host "Successfully connected to $dc" -ForegroundColor Green
+                    $validated = $true
+                    break
                 }
                 catch {
                     $lastError = $_.Exception.Message
@@ -132,17 +130,20 @@ function Start-SecurityEventMonitoring {
         }
 
         try {
+            # Validate parameters
+            if ([string]::IsNullOrEmpty($Password)) {
+                throw "Password parameter is empty or null"
+            }
+            if ([string]::IsNullOrEmpty($Username)) {
+                throw "Username parameter is empty or null"
+            }
+
             # Reconstruct credential from username and secure string
             $securePassword = ConvertTo-SecureString -String $Password -AsPlainText -Force
             $Cred = New-Object System.Management.Automation.PSCredential($Username, $securePassword)
 
-            # Test connection first
-            $testConnection = Test-WSMan -ComputerName $Computer -Credential $Cred -ErrorAction SilentlyContinue
-            if (-not $testConnection) {
-                throw "Unable to connect to $Computer via WinRM"
-            }
-
-            # Query events with timeout
+            # Query events directly - no need to test connection first
+            # Get-WinEvent will fail gracefully if connection is not available
             $events = @(Get-WinEvent -ComputerName $Computer -Credential $Cred -FilterHashtable @{
                 LogName = 'Security'
                 ID = $EventIDs
@@ -176,10 +177,17 @@ function Start-SecurityEventMonitoring {
     }
 
     # Add parameters - convert credential to username and plain text password for serialization
+    # NOTE: Password is passed as plain text because PSCredential objects cannot be serialized across runspaces.
+    # The password stays in memory only and is converted back to SecureString in the runspace.
     if ($script:Credential -is [System.Management.Automation.PSCredential]) {
+        $password = $script:Credential.GetNetworkCredential().Password
+        if ([string]::IsNullOrEmpty($password)) {
+            throw "Credential password is empty"
+        }
+
         [void]$ps.AddParameter('Computer', $ComputerName)
         [void]$ps.AddParameter('Username', $script:Credential.UserName)
-        [void]$ps.AddParameter('Password', $script:Credential.GetNetworkCredential().Password)
+        [void]$ps.AddParameter('Password', $password)
         [void]$ps.AddParameter('EventIDs', $EventIDs)
     }
     else {

@@ -7,6 +7,8 @@
     Monitors all domain controllers in the current domain for specific security events.
     Requires elevated privileges and domain credentials.
     Requires PowerShell 7.x on Windows with Desktop Experience.
+    Created by Trond Hoiberg
+    Feel free to use and modify this script as needed.
 #>
 
 # Check if running on Windows

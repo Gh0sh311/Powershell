@@ -349,7 +349,7 @@ foreach ($server in $servers) {
     # WhatIf support
     if ($PSCmdlet.ShouldProcess($server, "Execute Zabbix removal script")) {
         try {
-            # Prepare Invoke-Command parameters
+            # Prepare Invoke-Command parameters with CredSSP for network share access
             $invokeParams = @{
                 ComputerName = $server
                 ScriptBlock = $scriptBlock
@@ -357,6 +357,7 @@ foreach ($server in $servers) {
                 ErrorAction = 'Stop'
                 AsJob = $true
                 JobName = "RemoveZabbix_$server"
+                Authentication = 'Credssp'
             }
 
             if ($Credential) {

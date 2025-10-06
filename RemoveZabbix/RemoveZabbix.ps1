@@ -1,12 +1,11 @@
 # Define variables for paths and service name
-# Adjust the $networkShare variable to point to your network share location
-# Example: \\server\share\logs or \\server.domain.com\share\logs
+# Logs locally to avoid double-hop authentication issues with network shares
 # Zabbix can be installed in c:\Program Files (default), so verify where it is installed in your environment
 $zabbixBinPath = "C:\ProgramData\zabbix_agent\bin"
 $zabbixExe = Join-Path -Path $zabbixBinPath -ChildPath "zabbix_agentd.exe"
 $zabbixFolder = "C:\ProgramData\zabbix_agent"
-$networkShare = "\\<SERVER>\<SHARE>\Logs"
-$logFile = Join-Path -Path $networkShare -ChildPath "zabbixRemoval.log"
+$localLogPath = "C:\Temp"
+$logFile = Join-Path -Path $localLogPath -ChildPath "zabbixRemoval.log"
 $serviceName = "Zabbix Agent"
 
 # Get computer name
@@ -23,17 +22,18 @@ function Write-Log {
 }
 
 try {
-    # Check if the network share is accessible
-    Write-Host "Checking access to network share $networkShare..."
-    if (-not (Test-Path $networkShare)) {
-        throw "Cannot access network share $networkShare. Check network connectivity or permissions."
+    # Check if the local log directory is accessible
+    Write-Host "Checking access to local log path $localLogPath..."
+    if (-not (Test-Path $localLogPath)) {
+        Write-Host "Creating local log directory..."
+        New-Item -Path $localLogPath -ItemType Directory -Force | Out-Null
     }
 
     # Check if the log file exists, create it if it doesn't (otherwise append)
     if (-not (Test-Path $logFile)) {
         Write-Host "Creating new log file at $logFile..."
         Set-Content -Path $logFile -Value "=== Zabbix Removal Log ===" -ErrorAction Stop
-        Write-Host "Log file created. All removals will be logged to this file."
+        Write-Host "Log file created."
     } else {
         Write-Host "Log file exists. Appending removal log for $computerName..."
     }

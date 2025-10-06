@@ -4,6 +4,7 @@
 
 .DESCRIPTION
     This script queries Active Directory for all server computers and tests if WinRM is enabled and accessible on each server.
+    Tests both HTTP (5985) and HTTPS (5986) ports. Note: HTTPS tests may fail due to certificate issues even when WinRM is enabled.
 
 .EXAMPLE
     .\Check-WinRMStatus.ps1
@@ -55,9 +56,16 @@ foreach ($server in $servers) {
     }
 
     # Test WinRM using Test-WSMan with multiple attempts
+    # Configure authentication options
+    $testOptions = @{
+        ComputerName = $computerName
+        ErrorAction = 'Stop'
+        WarningAction = 'SilentlyContinue'
+    }
+
     # Try DNS hostname with HTTP
     try {
-        $wsmanTest = Test-WSMan -ComputerName $computerName -ErrorAction Stop -WarningAction SilentlyContinue
+        $wsmanTest = Test-WSMan @testOptions
         if ($wsmanTest) {
             $result.WinRMEnabled = $true
             $result.Status = "Online"
@@ -68,7 +76,8 @@ foreach ($server in $servers) {
     catch {
         # Try HTTPS port if HTTP fails
         try {
-            $wsmanTest = Test-WSMan -ComputerName $computerName -UseSSL -ErrorAction Stop -WarningAction SilentlyContinue
+            $testOptions.UseSSL = $true
+            $wsmanTest = Test-WSMan @testOptions
             $result.WinRMEnabled = $true
             $result.Status = "Online"
             $result.WinRMPort = "5986 (HTTPS)"
@@ -78,7 +87,12 @@ foreach ($server in $servers) {
             # Try using just the server name (NetBIOS) if FQDN failed
             if ($computerName -ne $server.Name) {
                 try {
-                    $wsmanTest = Test-WSMan -ComputerName $server.Name -ErrorAction Stop -WarningAction SilentlyContinue
+                    $testOptions = @{
+                        ComputerName = $server.Name
+                        ErrorAction = 'Stop'
+                        WarningAction = 'SilentlyContinue'
+                    }
+                    $wsmanTest = Test-WSMan @testOptions
                     if ($wsmanTest) {
                         $result.WinRMEnabled = $true
                         $result.Status = "Online"
@@ -89,7 +103,8 @@ foreach ($server in $servers) {
                 catch {
                     # Final attempt with NetBIOS and HTTPS
                     try {
-                        $wsmanTest = Test-WSMan -ComputerName $server.Name -UseSSL -ErrorAction Stop -WarningAction SilentlyContinue
+                        $testOptions.UseSSL = $true
+                        $wsmanTest = Test-WSMan @testOptions
                         $result.WinRMEnabled = $true
                         $result.Status = "Online"
                         $result.WinRMPort = "5986 (HTTPS) - NetBIOS"

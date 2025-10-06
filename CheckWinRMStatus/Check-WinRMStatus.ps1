@@ -48,10 +48,16 @@ foreach ($server in $servers) {
         ErrorMessage    = ""
     }
 
-    # Test WinRM using Test-WSMan
-    try {
-        $wsmanTest = Test-WSMan -ComputerName $server.DNSHostName -ErrorAction Stop
+    # Test connectivity first
+    $computerName = $server.DNSHostName
+    if ([string]::IsNullOrEmpty($computerName)) {
+        $computerName = $server.Name
+    }
 
+    # Test WinRM using Test-WSMan with multiple attempts
+    # Try DNS hostname with HTTP
+    try {
+        $wsmanTest = Test-WSMan -ComputerName $computerName -ErrorAction Stop -WarningAction SilentlyContinue
         if ($wsmanTest) {
             $result.WinRMEnabled = $true
             $result.Status = "Online"
@@ -62,17 +68,47 @@ foreach ($server in $servers) {
     catch {
         # Try HTTPS port if HTTP fails
         try {
-            $wsmanTest = Test-WSMan -ComputerName $server.DNSHostName -UseSSL -ErrorAction Stop
+            $wsmanTest = Test-WSMan -ComputerName $computerName -UseSSL -ErrorAction Stop -WarningAction SilentlyContinue
             $result.WinRMEnabled = $true
             $result.Status = "Online"
             $result.WinRMPort = "5986 (HTTPS)"
             Write-Host " [SUCCESS - HTTPS]" -ForegroundColor Green
         }
         catch {
-            $result.WinRMEnabled = $false
-            $result.Status = "Failed"
-            $result.ErrorMessage = $_.Exception.Message
-            Write-Host " [FAILED]" -ForegroundColor Red
+            # Try using just the server name (NetBIOS) if FQDN failed
+            if ($computerName -ne $server.Name) {
+                try {
+                    $wsmanTest = Test-WSMan -ComputerName $server.Name -ErrorAction Stop -WarningAction SilentlyContinue
+                    if ($wsmanTest) {
+                        $result.WinRMEnabled = $true
+                        $result.Status = "Online"
+                        $result.WinRMPort = "5985 (HTTP) - NetBIOS"
+                        Write-Host " [SUCCESS - NetBIOS]" -ForegroundColor Green
+                    }
+                }
+                catch {
+                    # Final attempt with NetBIOS and HTTPS
+                    try {
+                        $wsmanTest = Test-WSMan -ComputerName $server.Name -UseSSL -ErrorAction Stop -WarningAction SilentlyContinue
+                        $result.WinRMEnabled = $true
+                        $result.Status = "Online"
+                        $result.WinRMPort = "5986 (HTTPS) - NetBIOS"
+                        Write-Host " [SUCCESS - NetBIOS HTTPS]" -ForegroundColor Green
+                    }
+                    catch {
+                        $result.WinRMEnabled = $false
+                        $result.Status = "Failed"
+                        $result.ErrorMessage = $_.Exception.Message
+                        Write-Host " [FAILED]" -ForegroundColor Red
+                    }
+                }
+            }
+            else {
+                $result.WinRMEnabled = $false
+                $result.Status = "Failed"
+                $result.ErrorMessage = $_.Exception.Message
+                Write-Host " [FAILED]" -ForegroundColor Red
+            }
         }
     }
 

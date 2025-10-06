@@ -37,7 +37,7 @@ Free to use, copy, and modify without restriction.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `ScriptPath` | string | `\\sorcogruppen.no\dfs\Software\Media\SCCM\_ITIM-Transit\Zabbix\RemoveZabbix.ps1` | Path to the RemoveZabbix.ps1 script |
+| `ScriptPath` | string | `\\server\share\Zabbix\RemoveZabbix.ps1` | Path to the RemoveZabbix.ps1 script |
 | `LogFile` | string | `C:\Temp\ScriptExecutionLog.txt` | Path to the execution log file |
 | `Credential` | PSCredential | Current user | Credentials for remote authentication |
 | `SearchBase` | string | Entire domain | AD organizational unit to limit server scope |

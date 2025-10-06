@@ -42,7 +42,7 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$ScriptPath = "<UNC>\Zabbix\RemoveZabbix.ps1",
+    [string]$ScriptPath = "\\server\share\Zabbix\RemoveZabbix.ps1",
 
     [string]$LogFile = "C:\Temp\ScriptExecutionLog.txt",
 

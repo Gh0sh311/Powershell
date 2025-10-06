@@ -140,6 +140,10 @@ $txtContent += "=========================================="
 $txtContent | Out-File -FilePath $txtPath -Encoding UTF8
 Write-Host "Text report exported to: $txtPath" -ForegroundColor Yellow
 
+# Display results in GridView
+Write-Host "`nDisplaying results in GridView..." -ForegroundColor Cyan
+$results | Out-GridView -Title "WinRM Status Report - Total: $($results.Count) | Enabled: $enabledCount | Disabled: $disabledCount"
+
 # Show servers where WinRM is disabled
 if ($disabledServers.Count -gt 0) {
     Write-Host "`n========== SERVERS WITH WINRM DISABLED ==========" -ForegroundColor Yellow

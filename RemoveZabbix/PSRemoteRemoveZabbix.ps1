@@ -248,7 +248,7 @@ $stats = @{
 
 # Script block for remote execution
 $scriptBlock = {
-    param($RemoteScriptPath)
+    param($ScriptContent)
 
     $result = @{
         Status = 'Unknown'
@@ -271,18 +271,18 @@ $scriptBlock = {
             return $result
         }
 
-        # Verify script is accessible
-        if (-not (Test-Path $RemoteScriptPath)) {
-            $result.Status = 'Failed'
-            $result.Message = "Script not accessible at $RemoteScriptPath"
-            return $result
-        }
+        # Write script content to local temp file
+        $localScriptPath = Join-Path $tempDir "RemoveZabbix.ps1"
+        $ScriptContent | Out-File -FilePath $localScriptPath -Force -Encoding UTF8
 
         # Execute the script
-        $output = & $RemoteScriptPath 2>&1
+        $output = & $localScriptPath 2>&1
 
         # Create flag file to prevent re-execution
         Get-Date -Format 'yyyy-MM-dd HH:mm:ss' | Out-File -FilePath $flagFile -Force
+
+        # Clean up the temporary script file
+        Remove-Item -Path $localScriptPath -Force -ErrorAction SilentlyContinue
 
         $result.Status = 'Success'
         $result.Message = "Script executed successfully. Output: $($output -join '; ')"
@@ -349,15 +349,17 @@ foreach ($server in $servers) {
     # WhatIf support
     if ($PSCmdlet.ShouldProcess($server, "Execute Zabbix removal script")) {
         try {
-            # Prepare Invoke-Command parameters with CredSSP for network share access
+            # Read script content locally (no CredSSP needed - we pass content, not path)
+            $scriptContent = Get-Content -Path $ScriptPath -Raw
+
+            # Prepare Invoke-Command parameters - NO CredSSP required
             $invokeParams = @{
                 ComputerName = $server
                 ScriptBlock = $scriptBlock
-                ArgumentList = $ScriptPath
+                ArgumentList = $scriptContent
                 ErrorAction = 'Stop'
                 AsJob = $true
                 JobName = "RemoveZabbix_$server"
-                Authentication = 'Credssp'
             }
 
             if ($Credential) {

@@ -103,41 +103,41 @@ $enabledServers = $results | Where-Object { $_.WinRMEnabled -eq $true }
 $disabledServers = $results | Where-Object { $_.WinRMEnabled -eq $false }
 
 # Build text file content
-$textContent = @()
-$textContent += "=========================================="
-$textContent += "WinRM Status Report"
-$textContent += "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-$textContent += "=========================================="
-$textContent += ""
-$textContent += "SERVERS WITH WINRM ENABLED:"
-$textContent += "=========================================="
+$txtContent = @()
+$txtContent += "=========================================="
+$txtContent += "WinRM Status Report"
+$txtContent += "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+$txtContent += "=========================================="
+$txtContent += ""
+$txtContent += "SERVERS WITH WINRM ENABLED:"
+$txtContent += "=========================================="
 if ($enabledServers.Count -gt 0) {
     foreach ($server in $enabledServers) {
-        $textContent += "$($server.ServerName) - $($server.DNSHostName) - Port: $($server.WinRMPort)"
+        $txtContent += "$($server.ServerName) - $($server.DNSHostName) - Port: $($server.WinRMPort)"
     }
 } else {
-    $textContent += "None"
+    $txtContent += "None"
 }
-$textContent += ""
-$textContent += "SERVERS WITH WINRM DISABLED/UNREACHABLE:"
-$textContent += "=========================================="
+$txtContent += ""
+$txtContent += "SERVERS WITH WINRM DISABLED/UNREACHABLE:"
+$txtContent += "=========================================="
 if ($disabledServers.Count -gt 0) {
     foreach ($server in $disabledServers) {
-        $textContent += "$($server.ServerName) - $($server.DNSHostName) - Error: $($server.ErrorMessage)"
+        $txtContent += "$($server.ServerName) - $($server.DNSHostName) - Error: $($server.ErrorMessage)"
     }
 } else {
-    $textContent += "None"
+    $txtContent += "None"
 }
-$textContent += ""
-$textContent += "=========================================="
-$textContent += "SUMMARY:"
-$textContent += "=========================================="
-$textContent += "Total servers with WinRM enabled: $enabledCount"
-$textContent += "Total servers with WinRM disabled/unreachable: $disabledCount"
-$textContent += "=========================================="
+$txtContent += ""
+$txtContent += "=========================================="
+$txtContent += "SUMMARY:"
+$txtContent += "=========================================="
+$txtContent += "Total servers with WinRM enabled: $enabledCount"
+$txtContent += "Total servers with WinRM disabled/unreachable: $disabledCount"
+$txtContent += "=========================================="
 
 # Write to file
-$textContent | Out-File -FilePath $txtPath -Encoding UTF8
+$txtContent | Out-File -FilePath $txtPath -Encoding UTF8
 Write-Host "Text report exported to: $txtPath" -ForegroundColor Yellow
 
 # Show servers where WinRM is disabled

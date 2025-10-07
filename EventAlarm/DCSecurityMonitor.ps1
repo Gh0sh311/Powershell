@@ -21,7 +21,27 @@ $script:MonitoringActive = $false
 $script:EventAlerts = @{}
 $script:ActiveJobs = @{}
 $script:ServerEventIDs = @{}
-$script:DefaultEventIDs = @(1102, 4719, 4765, 4766, 4794, 4897, 4964)
+# Default Event IDs focused on insider threats and lateral movement
+$script:DefaultEventIDs = @(
+    1102,  # Audit log cleared - attacker covering tracks
+    4624,  # Successful logon - lateral movement detection
+    4625,  # Failed logon - brute force/password spray
+    4648,  # Logon with explicit credentials - privilege escalation
+    4672,  # Special privileges assigned - admin rights granted
+    4720,  # User account created - backdoor account
+    4728,  # Member added to global group - privilege escalation
+    4732,  # Member added to local group - local admin granted
+    4719,  # Audit policy changed - disabling logging
+    4768   # Kerberos TGT requested - golden ticket attacks
+)
+
+# Event ID 4624 filtering configuration (reduces noise)
+# Set to $true to filter 4624 events, $false to see all
+$script:Filter4624 = $true
+$script:Filter4624LogonTypes = @(3, 10)  # 3=Network, 10=RemoteInteractive (RDP)
+# Optionally filter by business hours (24-hour format, $null to disable)
+$script:BusinessHoursStart = $null  # Example: 8 for 8 AM
+$script:BusinessHoursEnd = $null    # Example: 18 for 6 PM
 
 #region Functions
 
@@ -106,8 +126,10 @@ function Get-DomainCredential {
                 try {
                     Write-Host "Testing connection to $dc..."
 
-                    # Test connectivity with credentials by querying a single event
-                    $null = Get-WinEvent -ComputerName $dc -Credential $cred -LogName System -MaxEvents 1 -ErrorAction Stop
+                    # Test connectivity with credentials using WinRM (Invoke-Command) instead of RPC (Get-WinEvent)
+                    $null = Invoke-Command -ComputerName $dc -Credential $cred -ScriptBlock {
+                        Get-WinEvent -LogName System -MaxEvents 1 -ErrorAction Stop
+                    } -ErrorAction Stop
                     Write-Host "Successfully connected to $dc" -ForegroundColor Green
                     $validated = $true
                     break
@@ -180,7 +202,7 @@ function Start-SecurityEventMonitoring {
 
     # Start PowerShell job (can serialize PSCredential properly)
     $job = Start-Job -ScriptBlock {
-        param($Computer, $Cred, $EventIDs)
+        param($Computer, $Cred, $EventIDs, $Filter4624, $Filter4624LogonTypes, $BusinessHoursStart, $BusinessHoursEnd)
 
         $result = @{
             Success = $false
@@ -190,12 +212,46 @@ function Start-SecurityEventMonitoring {
         }
 
         try {
-            # Query events
-            $events = @(Get-WinEvent -ComputerName $Computer -Credential $Cred -FilterHashtable @{
-                LogName = 'Security'
-                ID = $EventIDs
-                StartTime = (Get-Date).AddMinutes(-5)
-            } -ErrorAction SilentlyContinue -MaxEvents 100)
+            # Use Invoke-Command with WinRM instead of Get-WinEvent with RPC
+            $events = @(Invoke-Command -ComputerName $Computer -Credential $Cred -ScriptBlock {
+                param($EventIDs)
+                Get-WinEvent -FilterHashtable @{
+                    LogName = 'Security'
+                    ID = $EventIDs
+                    StartTime = (Get-Date).AddMinutes(-5)
+                } -ErrorAction SilentlyContinue -MaxEvents 100
+            } -ArgumentList (,$EventIDs) -ErrorAction Stop)
+
+            # Filter Event ID 4624 if enabled
+            if ($Filter4624) {
+                $events = $events | Where-Object {
+                    if ($_.Id -eq 4624) {
+                        # Parse logon type from event (Property index 8)
+                        try {
+                            $logonType = $_.Properties[8].Value
+                            $matchesLogonType = $Filter4624LogonTypes -contains $logonType
+
+                            # Check business hours if configured
+                            $outsideBusinessHours = $true
+                            if ($null -ne $BusinessHoursStart -and $null -ne $BusinessHoursEnd) {
+                                $eventHour = $_.TimeCreated.Hour
+                                $outsideBusinessHours = ($eventHour -lt $BusinessHoursStart -or $eventHour -ge $BusinessHoursEnd)
+                            }
+
+                            # Include if matches logon type AND (no business hours filter OR outside business hours)
+                            return $matchesLogonType -and ($null -eq $BusinessHoursStart -or $outsideBusinessHours)
+                        }
+                        catch {
+                            # If parsing fails, include the event
+                            return $true
+                        }
+                    }
+                    else {
+                        # Not 4624, include it
+                        return $true
+                    }
+                }
+            }
 
             $result.Success = $true
             $result.Events = $events | ForEach-Object {
@@ -213,7 +269,7 @@ function Start-SecurityEventMonitoring {
         }
 
         return $result
-    } -ArgumentList $ComputerName, $script:Credential, $EventIDs
+    } -ArgumentList $ComputerName, $script:Credential, $EventIDs, $script:Filter4624, $script:Filter4624LogonTypes, $script:BusinessHoursStart, $script:BusinessHoursEnd
 
     # Store job info
     $script:ActiveJobs[$ComputerName] = @{

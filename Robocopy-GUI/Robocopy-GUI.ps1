@@ -137,10 +137,10 @@ $tabCopyOptions.Controls.Add($chkCopyDAT)
 
 # Checkbox for /COPYALL (all file info)
 $chkCopyAll = New-Object System.Windows.Forms.CheckBox
-$chkCopyAll.Text = "Copy All File Info (/COPYALL)"
+$chkCopyAll.Text = "Copy All File Info (/COPYALL) - Requires Admin"
 $chkCopyAll.Location = New-Object System.Drawing.Point(10, 40)
-$chkCopyAll.Size = New-Object System.Drawing.Size(300, 20)
-$ttip.SetToolTip($chkCopyAll, "Copies all file info (data, attributes, timestamps, security, owner, auditing).")
+$chkCopyAll.Size = New-Object System.Drawing.Size(350, 20)
+$ttip.SetToolTip($chkCopyAll, "Copies all file info including auditing (REQUIRES ADMINISTRATOR RIGHTS). Uncheck if running as normal user.")
 $tabCopyOptions.Controls.Add($chkCopyAll)
 
 # Checkbox for /CREATE (directory structure only)
@@ -561,9 +561,27 @@ $btnExecute.Add_Click({
         $process.BeginOutputReadLine()
         $stderr = $process.StandardError.ReadToEnd()
         $process.WaitForExit()
-        
+
         $pBar.Value = 100
-        $txtOutput.Invoke({ $txtOutput.AppendText($stderr + "`r`n" + "Operation completed with exit code: " + $process.ExitCode) })
+
+        # Display stderr and exit code
+        $exitCode = $process.ExitCode
+        $txtOutput.Invoke({
+            if ($stderr) {
+                $txtOutput.AppendText("`r`n--- Errors/Warnings ---`r`n" + $stderr + "`r`n")
+            }
+            $txtOutput.AppendText("`r`nOperation completed with exit code: $exitCode`r`n")
+
+            # Provide helpful message for common errors
+            if ($exitCode -ge 8) {
+                $txtOutput.AppendText("ERROR: Copy failed. If you see 'Manage Auditing user right' error, uncheck '/COPYALL' option.`r`n")
+            } elseif ($exitCode -eq 0) {
+                $txtOutput.AppendText("SUCCESS: No files were copied (all files up to date).`r`n")
+            } elseif ($exitCode -eq 1) {
+                $txtOutput.AppendText("SUCCESS: Files were copied successfully.`r`n")
+            }
+            $txtOutput.ScrollToCaret()
+        })
     }) | Out-Null
     
     $async = $ps.BeginInvoke()
@@ -573,9 +591,16 @@ $btnExecute.Add_Click({
         [System.Windows.Forms.Application]::DoEvents()
         Start-Sleep -Milliseconds 100
     }
-    
-    $ps.EndInvoke($async)
-    $runspace.Close()
+
+    try {
+        $ps.EndInvoke($async)
+    } catch {
+        $txtOutput.AppendText("`r`nError: $($_.Exception.Message)`r`n")
+    } finally {
+        $ps.Dispose()
+        $runspace.Close()
+        $runspace.Dispose()
+    }
 })
 $frm.Controls.Add($btnExecute)
 

@@ -42,10 +42,39 @@ The script validates inputs, such as ensuring valid source and destination paths
 - **Author**: Trond Hoiberg
 - **Date**: 30th September 2025
 - **License**: Feel free to modify and use the script as needed.
-- **Limitations**: 
+- **Limitations**:
   - Progress estimation may slow down the start of operations for large directories. This can be disabled for faster startup.
   - The script assumes Robocopy is available in the system PATH.
 - **Customization**: Users can extend the script by adding more Robocopy options or modifying the GUI layout.
+
+## Important: Running as Normal User vs Administrator
+
+### /COPYALL Option Requires Administrator Rights
+The `/COPYALL` option attempts to copy **all file information** including:
+- Data (D)
+- Attributes (A)
+- Timestamps (T)
+- NTFS Security (S)
+- Owner information (O)
+- Auditing information (U)
+
+**The auditing information (U) requires the "Manage Auditing" user right**, which is only available when running PowerShell as an administrator.
+
+### Recommended Settings for Normal Users
+If you're running the script as a **normal user** (not administrator):
+1. **Uncheck** the "Copy All File Info (/COPYALL) - Requires Admin" option
+2. **Keep checked** the "Copy Data, Attributes, Timestamps (/COPY:DAT)" option (default)
+
+This will copy files successfully without requiring administrator privileges.
+
+### Error: "You do not have the Manage Auditing user right"
+If you see this error in the output:
+```
+ERROR : You do not have the Manage Auditing user right.
+*****  You need this to copy auditing information (/COPY:U or /COPYALL).
+```
+
+**Solution**: Uncheck the `/COPYALL` option in the "Copy Options" tab and run the operation again. The `/COPY:DAT` option will still copy your files with data, attributes, and timestamps.
 
 ## Example
 To copy all files and subdirectories from `C:\Source` to `D:\Destination` with data, attributes, and timestamps, including empty directories:

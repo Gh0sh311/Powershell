@@ -1,0 +1,257 @@
+[
+  {
+    "name": "ZIP Archive",
+    "sigHex": "504B0304",
+    "offset": 0
+  },
+  {
+    "name": "RAR Archive",
+    "sigHex": "526172211A07",
+    "offset": 0
+  },
+  {
+    "name": "7-Zip Archive",
+    "sigHex": "377ABCAF271C",
+    "offset": 0
+  },
+  {
+    "name": "PDF Document",
+    "sigHex": "25504446",
+    "offset": 0
+  },
+  {
+    "name": "PNG Image",
+    "sigHex": "89504E47",
+    "offset": 0
+  },
+  {
+    "name": "JPEG Image",
+    "sigHex": "FFD8FF",
+    "offset": 0
+  },
+  {
+    "name": "GIF Image (87a)",
+    "sigAscii": "GIF87a",
+    "offset": 0
+  },
+  {
+    "name": "GIF Image (89a)",
+    "sigAscii": "GIF89a",
+    "offset": 0
+  },
+  {
+    "name": "Windows Executable (PE)",
+    "sigHex": "4D5A",
+    "offset": 0
+  },
+  {
+    "name": "ELF Executable",
+    "sigHex": "7F454C46",
+    "offset": 0
+  },
+  {
+    "name": "MS Office Document (Old)",
+    "sigHex": "D0CF11E0A1B11AE1",
+    "offset": 0
+  },
+  {
+    "name": "MS Office 2007+ (OOXML)",
+    "sigHex": "504B0304",
+    "offset": 0
+  },
+  {
+    "name": "XML Document",
+    "sigHex": "3C3F786D6C",
+    "offset": 0
+  },
+  {
+    "name": "TAR Archive",
+    "sigHex": "7573746172",
+    "offset": 257
+  },
+  {
+    "name": "GZIP Compressed",
+    "sigHex": "1F8B08",
+    "offset": 0
+  },
+  {
+    "name": "BMP Image",
+    "sigHex": "424D",
+    "offset": 0
+  },
+  {
+    "name": "MP3 Audio (ID3v2)",
+    "sigHex": "494433",
+    "offset": 0
+  },
+  {
+    "name": "MP3 Audio (MPEG)",
+    "sigHex": "FFFB",
+    "offset": 0
+  },
+  {
+    "name": "WAV Audio",
+    "sigHex": "52494646",
+    "offset": 0
+  },
+  {
+    "name": "AVI Video",
+    "sigHex": "52494646",
+    "offset": 0
+  },
+  {
+    "name": "MP4 Video",
+    "sigHex": "66747970",
+    "offset": 4
+  },
+  {
+    "name": "MKV Video",
+    "sigHex": "1A45DFA3",
+    "offset": 0
+  },
+  {
+    "name": "SQLite Database",
+    "sigAscii": "SQLite format 3",
+    "offset": 0
+  },
+  {
+    "name": "Java Class File",
+    "sigHex": "CAFEBABE",
+    "offset": 0
+  },
+  {
+    "name": "Windows Registry Hive",
+    "sigHex": "72656766",
+    "offset": 0
+  },
+  {
+    "name": "PST (Outlook Data)",
+    "sigHex": "2142444E",
+    "offset": 0
+  },
+  {
+    "name": "EVTX (Windows Event Log)",
+    "sigAscii": "ElfFile",
+    "offset": 0
+  },
+  {
+    "name": "ISO Disk Image",
+    "sigHex": "4344303031",
+    "offset": 32769
+  },
+  {
+    "name": "VMDK (VMware Disk)",
+    "sigHex": "4B444D",
+    "offset": 0
+  },
+  {
+    "name": "DMG (Mac Disk Image)",
+    "sigHex": "7801730D626260",
+    "offset": 0
+  },
+  {
+    "name": "PEM Certificate",
+    "sigAscii": "-----BEGIN",
+    "offset": 0
+  },
+  {
+    "name": "Bitcoin Wallet (wallet.dat)",
+    "sigHex": "62310400",
+    "offset": 0
+  },
+  {
+    "name": "PCAP Network Capture",
+    "sigHex": "D4C3B2A1",
+    "offset": 0
+  },
+  {
+    "name": "PCAPNG Network Capture",
+    "sigHex": "0A0D0D0A",
+    "offset": 0
+  },
+  {
+    "name": "DLL Library",
+    "sigHex": "4D5A",
+    "offset": 0
+  },
+  {
+    "name": "MSI Installer",
+    "sigHex": "D0CF11E0A1B11AE1",
+    "offset": 0
+  },
+  {
+    "name": "CAB Archive",
+    "sigHex": "4D534346",
+    "offset": 0
+  },
+  {
+    "name": "CHM Help File",
+    "sigHex": "49545346",
+    "offset": 0
+  },
+  {
+    "name": "ICO Icon",
+    "sigHex": "00000100",
+    "offset": 0
+  },
+  {
+    "name": "TIFF Image (Little Endian)",
+    "sigHex": "49492A00",
+    "offset": 0
+  },
+  {
+    "name": "TIFF Image (Big Endian)",
+    "sigHex": "4D4D002A",
+    "offset": 0
+  },
+  {
+    "name": "WebP Image",
+    "sigHex": "52494646",
+    "offset": 0
+  },
+  {
+    "name": "FLAC Audio",
+    "sigHex": "664C6143",
+    "offset": 0
+  },
+  {
+    "name": "OGG Audio/Video",
+    "sigHex": "4F676753",
+    "offset": 0
+  },
+  {
+    "name": "MOV Video",
+    "sigHex": "6D6F6F76",
+    "offset": 4
+  },
+  {
+    "name": "WMV/WMA Video",
+    "sigHex": "3026B2758E66CF11",
+    "offset": 0
+  },
+  {
+    "name": "SWF Flash",
+    "sigHex": "465753",
+    "offset": 0
+  },
+  {
+    "name": "RTF Document",
+    "sigHex": "7B5C727466",
+    "offset": 0
+  },
+  {
+    "name": "Bash Script",
+    "sigAscii": "#!/bin/bash",
+    "offset": 0
+  },
+  {
+    "name": "Python Script",
+    "sigAscii": "#!/usr/bin/python",
+    "offset": 0
+  },
+  {
+    "name": "PowerShell Script",
+    "sigAscii": "#Requires",
+    "offset": 0
+  }
+]

@@ -165,7 +165,7 @@ function Test-RPCConnectivity {
     Write-Result "========================================" "Info"
     Write-Result "" "Info"
 
-    $totalTests = 14
+    $totalTests = 15
     $currentTest = 0
 
     # Test 1: Basic Network Connectivity (Ping)
@@ -520,6 +520,42 @@ function Test-RPCConnectivity {
     }
 
     Remove-Job -Job $traceJob -Force -ErrorAction SilentlyContinue
+    Write-Result "" "Info"
+
+    # Test 15: Hidden Files Detection
+    $currentTest++
+    $progressBar.Value = [int](($currentTest / $totalTests) * 100)
+    Write-Result "TEST 15: Hidden Files Detection on Remote Server" "Info"
+    try {
+        $uncPath = "\\$ServerName\C$"
+        if (Test-Path $uncPath -ErrorAction SilentlyContinue) {
+            Write-Result "  Scanning for hidden files in root directory..." "Info"
+
+            $hiddenFiles = Get-ChildItem -Path $uncPath -Force -ErrorAction SilentlyContinue |
+                Where-Object { $_.Attributes -match "Hidden" } |
+                Select-Object -First 20
+
+            if ($hiddenFiles) {
+                Write-Result "SUCCESS: Found $(@($hiddenFiles).Count) hidden files/folders (showing first 20):" "Success"
+                foreach ($file in $hiddenFiles) {
+                    $attrs = $file.Attributes -replace ',', ', '
+                    Write-Result "  - $($file.Name) [Attributes: $attrs]" "Info"
+                }
+
+                if (@($hiddenFiles).Count -eq 20) {
+                    Write-Result "  Note: Only first 20 items shown. More hidden files may exist." "Info"
+                }
+            } else {
+                Write-Result "INFO: No hidden files found in root directory" "Info"
+            }
+        } else {
+            Write-Result "INFO: Cannot access remote path to scan for hidden files" "Warning"
+            Write-Result "  Requires administrative share access (C$)" "Info"
+        }
+    } catch {
+        Write-Result "INFO: Hidden file scan unavailable - $($_.Exception.Message)" "Info"
+        Write-Result "  This test requires appropriate permissions" "Info"
+    }
     Write-Result "" "Info"
 
     # Summary and Recommendations

@@ -283,41 +283,39 @@ function Test-SuspiciousFile {
 
     # Calculate entropy
     $entropy = Get-FileEntropy -Bytes $Bytes
+    $entropyRounded = [Math]::Round($entropy, 2)
 
-    # High entropy threshold (7.5+ is very suspicious for non-compressed formats)
-    if ($entropy -ge 7.5) {
-        # Known compressed/encrypted formats are expected to have high entropy
-        $expectedHighEntropy = @('ZIP', 'RAR', '7-Zip', 'GZIP', 'Compressed', 'Archive', 'Encrypted')
-        $isExpectedHigh = $false
-        foreach ($format in $expectedHighEntropy) {
-            if ($DetectedType -like "*$format*") {
-                $isExpectedHigh = $true
-                break
-            }
-        }
-
-        if (-not $isExpectedHigh -and $DetectedType -eq 'Unknown') {
-            $flags += "🔒 Encrypted/Hidden Data (Entropy: $entropy)"
+    # Known compressed/encrypted formats are expected to have high entropy
+    $expectedHighEntropy = @('ZIP', 'RAR', '7-Zip', 'GZIP', 'Compressed', 'Archive', 'Encrypted', 'PDF')
+    $isExpectedHigh = $false
+    foreach ($format in $expectedHighEntropy) {
+        if ($DetectedType -like "*$format*") {
+            $isExpectedHigh = $true
+            break
         }
     }
 
-    # Very high entropy even for known formats
-    if ($entropy -ge 7.9) {
-        $flags += "⚠️ Very High Entropy ($entropy) - Possibly Encrypted"
+    # Context-aware entropy thresholds based on file type
+    $isImageFile = $DetectedType -match 'PNG|JPEG|GIF|BMP|TIFF|WebP'
+
+    # Extremely high entropy (approaching theoretical maximum)
+    if ($entropy -ge 7.95) {
+        if (-not $isExpectedHigh) {
+            $flags += "🔒 Extremely High Entropy ($entropyRounded) - Near random/encrypted"
+        }
+    }
+    # Very high entropy for images (steganography indicator)
+    elseif ($entropy -ge 7.8 -and $isImageFile) {
+        $flags += "🖼️ Possible Steganography (Entropy: $entropyRounded, typical JPEG: 7.0-7.6)"
+    }
+    # High entropy for unknown files
+    elseif ($entropy -ge 7.5 -and $DetectedType -eq 'Unknown') {
+        $flags += "🔒 Encrypted/Hidden Data (Entropy: $entropyRounded)"
     }
 
     # Low entropy for binary formats (could be padding attack)
     if ($entropy -lt 3.0 -and $FileSize -gt 1KB) {
-        $flags += "⚠️ Suspiciously Low Entropy ($entropy)"
-    }
-
-    # Check for steganography indicators (image files with unusual sizes)
-    if ($DetectedType -match 'PNG|JPEG|GIF|BMP') {
-        # Rough heuristic: images should have moderate entropy (5-7)
-        # Very high entropy in images might indicate hidden data
-        if ($entropy -ge 7.8) {
-            $flags += "🖼️ Possible Steganography (Image with very high entropy)"
-        }
+        $flags += "⚠️ Suspiciously Low Entropy ($entropyRounded) - Possible padding"
     }
 
     # Null byte padding detection (common in malware)
@@ -327,11 +325,79 @@ function Test-SuspiciousFile {
 
         if ($nullPercent -gt 50) {
             $flags += "⚠️ Excessive Null Bytes ($([Math]::Round($nullPercent, 1))%)"
+        } elseif ($nullPercent -gt 30 -and -not $isExpectedHigh) {
+            $flags += "⚠️ High Null Byte Percentage ($([Math]::Round($nullPercent, 1))%)"
+        }
+    }
+
+    # Chi-square test for randomness (detects uniform byte distribution)
+    if ($Bytes.Length -ge 1KB) {
+        $freq = @{}
+        foreach ($b in $Bytes) {
+            if ($freq.ContainsKey($b)) {
+                $freq[$b]++
+            } else {
+                $freq[$b] = 1
+            }
+        }
+
+        $expected = $Bytes.Length / 256.0
+        $chiSquare = 0
+        foreach ($count in $freq.Values) {
+            $chiSquare += [Math]::Pow($count - $expected, 2) / $expected
+        }
+
+        # Chi-square for random data is ~255, structured data varies significantly
+        # Very low chi-square indicates uniform distribution (encrypted/random)
+        if ($chiSquare -lt 200 -and $entropy -ge 7.5 -and -not $isExpectedHigh) {
+            $flags += "🔢 Uniform byte distribution (Chi²: $([Math]::Round($chiSquare, 1))) - Possible encryption"
+        }
+    }
+
+    # Check for trailing data in JPEG files (polyglot/appended files)
+    if ($DetectedType -match 'JPEG' -and $Bytes.Length -ge 100) {
+        $jpegEnd = -1
+        for ($i = $Bytes.Length - 2; $i -ge ([Math]::Max(0, $Bytes.Length - 50000)); $i--) {
+            if ($Bytes[$i] -eq 0xFF -and $Bytes[$i+1] -eq 0xD9) {
+                $jpegEnd = $i + 1
+                break
+            }
+        }
+
+        if ($jpegEnd -gt 0 -and $jpegEnd -lt ($Bytes.Length - 10)) {
+            $trailingBytes = $Bytes.Length - $jpegEnd - 1
+            $flags += "📎 Trailing data after JPEG ($trailingBytes bytes) - Possible polyglot"
+        }
+    }
+
+    # Check for trailing data in PNG files
+    if ($DetectedType -match 'PNG' -and $Bytes.Length -ge 100) {
+        # PNG ends with IEND chunk: 00 00 00 00 49 45 4E 44 AE 42 60 82
+        $pngEndPattern = @(0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82)
+        $pngEnd = -1
+
+        for ($i = $Bytes.Length - 8; $i -ge ([Math]::Max(0, $Bytes.Length - 10000)); $i--) {
+            $match = $true
+            for ($j = 0; $j -lt 8; $j++) {
+                if ($Bytes[$i + $j] -ne $pngEndPattern[$j]) {
+                    $match = $false
+                    break
+                }
+            }
+            if ($match) {
+                $pngEnd = $i + 7
+                break
+            }
+        }
+
+        if ($pngEnd -gt 0 -and $pngEnd -lt ($Bytes.Length - 10)) {
+            $trailingBytes = $Bytes.Length - $pngEnd - 1
+            $flags += "📎 Trailing data after PNG ($trailingBytes bytes) - Possible polyglot"
         }
     }
 
     return @{
-        Entropy = $entropy
+        Entropy = $entropyRounded
         Flags = $flags
         IsSuspicious = ($flags.Count -gt 0)
     }

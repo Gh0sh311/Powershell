@@ -8,10 +8,28 @@ As a cybersecurity engineer at a large organization, I develop these tools to mo
 The primary objective of these scripts is to provide robust monitoring and analysis capabilities for PowerShell activities within an enterprise environment. By leveraging PowerShell's native capabilities, these tools help identify suspicious behavior, unauthorized access, or malicious scripts that could indicate a security breach.
 
 ## Features
-- **Event Log Analysis**: Scripts to parse and analyze Windows Event Logs for PowerShell-related activities, identifying anomalies or suspicious patterns.
-- **Transcript File Monitoring**: Tools to examine PowerShell Transcript files for evidence of misuse or malicious commands.
-- **Custom Detection Logic**: Implement tailored detection rules to catch activities that may bypass traditional EDR solutions.
-- **Scalable and Modular**: Designed to be adaptable for various environments and easily extensible for additional use cases.
+
+### Security Monitoring & Analysis
+- **Event Log Analysis**: Advanced GUI-based event log search tool with Active Directory integration for monitoring security events across domain controllers
+- **Domain Controller Security Monitor**: Real-time monitoring of all domain controllers for specific security events, including insider threats and lateral movement detection
+- **File Type Detection**: GUI-based magic bytes analyzer to detect file types regardless of extension, with Base64 prefix analysis and hidden content detection
+- **Pattern Search Engine**: Automated text file scanning for user-defined patterns and regular expressions with comprehensive logging and result management
+
+### System Administration Tools
+- **WinRM Status Checker**: Test WinRM connectivity across all domain servers with HTTP/HTTPS port validation
+- **RPC Connectivity Diagnostics**: Comprehensive GUI tool for diagnosing "RPC server is unavailable" errors
+- **Zabbix Agent Management**: Scripts for removing, collecting logs, and remote management of Zabbix agents
+- **Robocopy GUI**: Simplified interface for Robocopy operations with common parameters and safety confirmations
+
+### Utilities
+- **File Hash Checker**: GUI utility to verify file integrity using SHA256, SHA1, or MD5 hashing with drag-and-drop support
+- **Unique ID Extractor**: Extract unique identifiers from lists for processing and analysis
+
+### Key Capabilities
+- **Custom Detection Logic**: Implement tailored detection rules to catch activities that may bypass traditional EDR solutions
+- **GUI-Based Tools**: Most tools feature intuitive graphical interfaces for ease of use
+- **Active Directory Integration**: Several scripts leverage AD for enterprise-wide operations
+- **Scalable and Modular**: Designed to be adaptable for various environments and easily extensible for additional use cases
 
 ## Getting Started
 ### Prerequisites
